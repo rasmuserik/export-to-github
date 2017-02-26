@@ -14,8 +14,20 @@ exports.info = {
 
 var ss = require('solsort', {version: '0.2'});
 
+var muToken = location.hash.replace('#muBackendLoginToken=', '');
+location.hash = '';
+
 ss.ready(() => {
-  ss.renderJsonml(['div', 'started'], ss.bodyElem('started'));
+if(!muToken) {
+  localStorage.setItem('route', JSON.stringify(ss.get('route')));
+  location.href = 'https://mubackend.solsort.com/auth/github?url=' +
+    location.href.replace(/[?#].*.?/, '') + '&scope=public_repo';
+} else {
+ss.set('route', JSON.parse(localStorage.getItem('route')));
+}
+  ss.renderJsonml(['div', 'muToken: ', muToken], ss.bodyElem(Math.random()));
+  ss.renderJsonml(['pre', JSON.stringify(ss.get('route'), null, 4)], 
+      ss.bodyElem(Math.random()));
 });
 // # Old code / notes
 /*
@@ -97,7 +109,7 @@ function makeReadmeMd(source, meta) {
   var s = `<img src=https://raw.githubusercontent.com/${project}/master/icon.png width=96 height=96 align=right>\n\n`;
   if(meta.url) {
     s+= '[![website](https://img.shields.io/badge/website-' +
-        meta.url.replace(/.*[/][/]/, '').replace(/[/].*/, '') +
+        meta.url.replace(/.*[/][/]/, '').replace(/[/].*.?/, '') +
         `-blue.svg)](${meta.url})\n`;
   }
   s += `[![github](https://img.shields.io/badge/github-${project}-blue.svg)](https://github.com/${project})\n`;
@@ -117,10 +129,10 @@ function makeReadmeMd(source, meta) {
 
 function exportToGithub() {
   location.href = 'https://mubackend.solsort.com/auth/github?url=' +
-    location.href.replace(/[?#].*/, '') +
+    location.href.replace(/[?#].*.?/, '') +
     '&scope=public_repo';
   localStorage.setItem('appeditAction', 'export');
-  /* https://developer.github.com/v3/oauth/#scopes */
+  // https://developer.github.com/v3/oauth/#scopes
 }
 
 function loggedIn() {
@@ -194,7 +206,7 @@ function loggedIn() {
       });
       return result;
     }).then(() => location.href =
-      location.href.replace(/[?#].*/, '?' + localStorage.getItem('appeditAfterExport') || ''))
+      location.href.replace(/[?#].*.?/, '?' + localStorage.getItem('appeditAfterExport') || ''))
       .catch(e => {
         if(e.constructor === XMLHttpRequest &&
             e.status === 200) {
