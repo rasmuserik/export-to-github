@@ -1,0 +1,28 @@
+{
+  "name": "export-to-github",
+  "version": "0.2.0",
+  "description": "Export from appedit to github",
+  "main": "export-to-github.js",
+  "scripts": {
+    "test": "true"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/solsort/export-to-github"
+  },
+  "keywords": [],
+  "author": "RasmusErik / solsort.com",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/solsort/export-to-github/issues"
+  },
+  "homepage": "http://export-to-github.solsort.com",
+  "dependencies": {
+    "solsort": "^0.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^3.15.0",
+    "live-server": "^1.2.0",
+    "uglify-js-harmony": "^2.6.2"
+  }
+}
