@@ -39,6 +39,25 @@ ss.ready(() => {
   }
 });
 
+// ## writeFile(filename, data) -> fn() -> Promise
+
+function writeFile(file, content) {
+
+  // TODO
+
+  var url = 'https://api.github.com/repos/' + 
+    '/contents/' + filename + '?access_token=' + ghToken;
+  var message = {
+    path: f.name,
+    content: btoa(f.content),
+    message: `Commit ${f.name} via https://appedit.solsort.com/?Edit/js/gh/${project}.`
+  };
+  if(ghSha) {
+    message.sha = ghSha;
+  }
+  return () => ss.ajax(url, {method: 'PUT', data: content});
+}
+
 // ## determineRepos
 
 function determineRepos() {
@@ -50,14 +69,14 @@ function determineRepos() {
 function getRepos() {
   print('Getting github repos..');
   return ghAjax('repos/' + state.repos + '/contents/')
-  .then(o => state.reposContent = o);
+    .then(o => state.reposContent = o);
 }
 
 // ## checkLicense
 
 function checkLicense() {
   print('Checking license (must be MIT or GPLv3 in free version)');
-   return ghAjax('repos/' + state.repos + '/license')
+  return ghAjax('repos/' + state.repos + '/license')
     .then(o => {
       var license = (o.license || {}).spdx_id;
       if(!['MIT', 'GPL-3.0'].includes(license)) {
@@ -102,7 +121,7 @@ function githubToken() {
 function getUser() {
   print('Getting github user..');
   return ghAjax('user')
-  .then(o => state.user = o.login);
+    .then(o => state.user = o.login);
 }
 
 // ## print
@@ -116,15 +135,15 @@ function print() {
 // ## ghAjax
 
 function ghAjax(path, params) {
-   return ss.ajax('https://api.github.com/' + path + 
-       '?access_token=' + ghToken, params)
-     .then(str => {
-       try {
-         return JSON.parse(str);
-       } catch(e) {
-         return str;
-       }
-     });
+  return ss.ajax('https://api.github.com/' + path + 
+      '?access_token=' + ghToken, params)
+    .then(str => {
+      try {
+        return JSON.parse(str);
+      } catch(e) {
+        return str;
+      }
+    });
 
 }
 
