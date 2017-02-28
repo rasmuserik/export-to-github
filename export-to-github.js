@@ -34,6 +34,7 @@ ss.ready(() => {
       .then(determineRepos)
       .then(getRepos)
       .then(checkLicense)
+      .then(() => writeFile(state.name + '.js', state.code))
       .then(() => print(JSON.stringify(state, null, 4)))
       ;
   }
@@ -41,21 +42,21 @@ ss.ready(() => {
 
 // ## writeFile(filename, data) -> fn() -> Promise
 
-function writeFile(file, content) {
-
-  // TODO
-
-  var url = 'https://api.github.com/repos/' + 
-    '/contents/' + filename + '?access_token=' + ghToken;
+function writeFile(filename, content) {
+  var file = state.reposContent.filter(o => o.name === filename)[0];
+  print('Committing', filename, 'to GitHub');
   var message = {
-    path: f.name,
-    content: btoa(f.content),
-    message: `Commit ${f.name} via https://appedit.solsort.com/?Edit/js/gh/${project}.`
+    path: filename,
+    content: btoa(content),
+    message: 'Commit ' + filename +
+      ' via https://appedit.solsort.com/?page=edit&github=' + 
+      state.repos,
   };
-  if(ghSha) {
-    message.sha = ghSha;
+  if(file.sha) {
+    message.sha = file.sha;
   }
-  return () => ss.ajax(url, {method: 'PUT', data: content});
+  return ghAjax('repos/' + state.repos + '/contents/' + filename,
+      {data: JSON.stringify(message), method: 'PUT'});
 }
 
 // ## determineRepos
@@ -100,7 +101,7 @@ function loadSource() {
 
 // ## sha1(str)
 
-window.sha1 = function sha1(str) {
+function sha1(str) {
   return crypto.subtle.digest('SHA-1', 
       (new Uint8Array(str.split('').map(s=>s.charCodeAt(0)))).buffer)
     .then(hash => ss.slice(new Uint8Array(hash)).map(n => (0x100+n).toString(16).slice(1)).join(''));
@@ -242,124 +243,3 @@ function makeReadmeMd(source, meta) {
   return s;
 }
 
-// ## Export to github
-
-
-function exportToGithub() {
-  location.href = 'https://mubackend.solsort.com/auth/github?url=' +
-    location.href.replace(/[?#].*.?/, '') +
-    '&scope=public_repo';
-  localStorage.setItem('appeditAction', 'export');
-  // https://developer.github.com/v3/oauth/#scopes
-}
-
-function loggedIn() {
-  var ghurl = 'https://api.github.com';
-  var token = location.hash.slice(21);
-  var code = localStorage.getItem('appeditContent');
-  var meta = JSON.parse(localStorage.getItem('appeditMeta'))[0];
-  var username = '';
-  var codeHash;
-  var name = meta.id;
-  var project;
-  var dir;
-  var localFiles;
-  ajax('https://mubackend.solsort.com/auth/result/' + token)
-    .then(o => {
-      token = o.token;
-      return ajax('https://api.github.com/user?access_token=' + token);
-    }).then(u => {
-      project = u.login + '/' + name;
-      meta.githubUser = u.login;
-      return sha1files(makeFiles(code, meta));
-    }).then(files => {
-      localFiles = files;
-      return ajax('https://api.github.com/repos/' + project +
-          '?access_token=' + token);
-    }).then(o => {
-      if(o.message === 'Not Found') {
-        return ajax('https://api.github.com/user/repos' +
-            '?access_token=' + token, { data: {
-              name: name,
-              auto_init: true,
-              gitignore_template: 'Node',
-              license_template: 'mit'
-            }}).then(() => new Promise((resolve) =>
-                setTimeout(resolve, 1000)));
-      }
-    }).then(() => {
-      return ajax(`https://api.github.com/repos/${project}/license` +
-          '?access_token=' + token);
-
-    }).then(o => {
-      var license = (o.license || {}).spdx_id;
-      if(!['MIT', 'GPL-3.0'].includes(license)) {
-        throw new Error('Invalid license');
-      }
-      return ajax(`https://api.github.com/repos/${project}/contents` +
-          '?access_token=' + token);
-    }).then(ghFiles => {
-      console.log('here');
-      var ghShas = {};
-      for(var i = 0; i < ghFiles.length; ++i) {
-        ghShas[ghFiles[i].name]  = ghFiles[i].sha;
-      }
-      var result = Promise.resolve();
-      localFiles.map(f => {
-        var ghSha = ghShas[f.name];
-        if(ghSha === f.sha) {
-          return;
-        }
-        var message = {
-          path: f.name,
-          content: btoa(f.content),
-          message: `Commit ${f.name} via https://appedit.solsort.com/?Edit/js/gh/${project}.`
-        };
-        if(ghSha) {
-          message.sha = ghSha;
-        }
-        var url = `https://api.github.com/repos/${project}/contents/${f.name}` +
-          '?access_token=' + token;
-        result = result.then(() => ajax(url, {method: 'PUT', data: message}));
-      });
-      return result;
-    }).then(() => location.href =
-      location.href.replace(/[?#].*.?/, '?' + localStorage.getItem('appeditAfterExport') || ''))
-      .catch(e => {
-        if(e.constructor === XMLHttpRequest &&
-            e.status === 200) {
-          exportToGithub();
-        }
-        console.log('apierror', e);
-        throw e;
-      });
-
-    localStorage.setItem('appeditAction', '');
-}
-
-function ajax(url, opt) {
-  opt = opt || {};
-  opt.method = opt.method || (opt.data ? 'POST' : 'GET');
-  return new Promise(function(resolve, reject) {
-    var xhr = new XMLHttpRequest();
-    xhr.open(opt.method, url);
-    xhr.onreadystatechange = function() {
-      if(xhr.readyState === 4) {
-        if(xhr.responseText) {
-          var result = xhr.responseText;
-          try {
-            result = JSON.parse(xhr.responseText);
-          } catch(e) {
-            undefined;
-          }
-          resolve(result);
-        } else {
-          reject(xhr);
-        }
-      }
-    };
-    xhr.send(opt.data ? JSON.stringify(opt.data) : undefined);
-  });
-}
-
-*/
