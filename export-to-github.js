@@ -36,6 +36,7 @@ ss.ready(() => {
       .then(checkLicense)
       .then(() => writeFile(state.name + '.js', state.code))
       .then(() => print(JSON.stringify(state, null, 4)))
+      .then(() => state.redirect && (location.href = decodeURIComponent(state.redirect)))
       ;
   }
 });
@@ -243,3 +244,4 @@ function makeReadmeMd(source, meta) {
   return s;
 }
 
+*/
