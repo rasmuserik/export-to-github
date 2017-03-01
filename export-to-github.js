@@ -32,24 +32,55 @@ ss.ready(() => {
       .then(githubToken)
       .then(getUser)
       .then(determineRepos)
+      .catch(handleError)
       .then(getRepos)
+      .catch(() => 
+          createRepos()
+          .then(() => ss.sleep(5000))
+          .then(getRepos))
       .then(checkLicense)
       .then(() => writeFile(state.name + '.js', state.code))
       .then(() => print('Export OK'))
       .then(() => ss.sleep(3000))
       .then(() => state.redirect && (location.href = decodeURIComponent(state.redirect)))
-      .catch(e => {
-        print('export error');
-        console.log(e);
-        print(e.toString());
-      });
+      .catch(handleError);
   }
 });
+
+// ## createRepos
+
+function createRepos() {
+  if(!confirm('Could not access github:' + state.repos +
+        '\nShall I try to create it?')) {
+    return Promise.reject('Could not access github:' + state.repos);
+  }
+  var path = state.repos.toLowerCase().startsWith(state.user.toLowerCase()) ?
+    'user/repos' : 
+    'orgs/' + state.repos.replace(/[/].*.?/, '') + '/repos';
+  return ghAjax(path, {
+    method: 'POST',
+    data: JSON.stringify({
+      name: state.repos.replace(/[^/]*./, ''),
+      auto_init: true,
+      homepage: 'https://appedit.solsort.com/?page=read&github=' + state.repos,
+      gitignore_template: 'Node',
+      license_template: 'mit'
+    })
+  });
+}
+
+// ## handleError
+
+function handleError(e) {
+  print('export error');
+  console.log(e);
+  print(e.toString());
+}
 
 // ## writeFile(filename, data) -> fn() -> Promise
 
 function writeFile(filename, content) {
-  var file = state.reposContent.filter(o => o.name === filename)[0];
+  var file = state.reposContent.filter(o => o.name === filename)[0] || {};
   print('Committing', filename, 'to GitHub');
   var message = {
     path: filename,
