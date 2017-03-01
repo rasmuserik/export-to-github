@@ -35,9 +35,14 @@ ss.ready(() => {
       .then(getRepos)
       .then(checkLicense)
       .then(() => writeFile(state.name + '.js', state.code))
-      .then(() => print(JSON.stringify(state, null, 4)))
+      .then(() => print('Export OK'))
+      .then(() => ss.sleep(3))
       .then(() => state.redirect && (location.href = decodeURIComponent(state.redirect)))
-      ;
+      .catch(e => {
+        print('export error');
+        console.log(e);
+        print(e.toString());
+      });
   }
 });
 
