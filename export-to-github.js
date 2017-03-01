@@ -36,7 +36,7 @@ ss.ready(() => {
       .then(checkLicense)
       .then(() => writeFile(state.name + '.js', state.code))
       .then(() => print('Export OK'))
-      .then(() => ss.sleep(3))
+      .then(() => ss.sleep(3000))
       .then(() => state.redirect && (location.href = decodeURIComponent(state.redirect)))
       .catch(e => {
         print('export error');
